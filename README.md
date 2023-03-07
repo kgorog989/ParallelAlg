@@ -1,0 +1,2 @@
+# ParallelAlg
+Párhuzamos algoritmusok gyakorlat
