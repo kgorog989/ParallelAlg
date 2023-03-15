@@ -1,17 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
- 
 
-int main() {
+float generate_float(int lower, int upper);
 
- srand(time(0)); 
- int upper = 1000, lower = 500;
- float range = upper - lower;
- float div = RAND_MAX / range;
- float value;
+int main()
+{
 
- value = lower + (rand()/div);
+    int upper = 1000, lower = 500;
+    float value = generate_float(lower, upper);
 
- printf("Random float: %f", value);
- }
+    printf("Random float: %f", value);
+}
+
+float generate_float(int lower, int upper)
+{
+    srand(time(0));
+
+    float range = upper - lower;
+    float div = RAND_MAX / range;
+    float value = lower + (rand() / div);
+
+    return value;
+}
