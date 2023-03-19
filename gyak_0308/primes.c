@@ -12,7 +12,7 @@ int main()
 	double total_time;
 	clock_t start, end;
 
-	for (maximum = 1000; maximum <= 150000; maximum = maximum + 1000)
+	for (maximum = 50000; maximum <= 1000000; maximum = maximum + 50000)
 	{
 
 		count = 0, minimum = 1;
