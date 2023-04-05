@@ -1,0 +1,6 @@
+array_sum 0.000000
+recursive_array_sum 0.002000
+array_max 0.000000
+recursive_array_max 0.002000
+array_min 0.001000
+recursive_array_min 0.001000
