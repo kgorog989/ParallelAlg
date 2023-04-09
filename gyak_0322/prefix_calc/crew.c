@@ -2,96 +2,46 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 
-void fill_array(int *array, int lower, int upper, int size);
-void crew_prefix(FILE *graphviz, int processors, int *X, int n);
-void print_array(int *array, int size);
+void crew_prefix(FILE *graphviz, int *X, int n);
 
 int main()
 {
 
-	int n = 8, lower = 1, upper = 6;
+    int n = 8;
     int X[n];
-    int processors = 2;
-	FILE *graphviz;
+    FILE *graphviz;
 
-    fill_array(X, lower, upper, n);
-    print_array(X, n);
-    crew_prefix(graphviz, processors, X, n);
-    print_array(X, n);
+    crew_prefix(graphviz, X, n);
+    printf("Task finished.");
 
-	return 0;
+    return 0;
 }
 
-void fill_array(int *array, int lower, int upper, int size)
+void crew_prefix(FILE *graphviz, int *X, int n)
 {
-    if (size < 1)
-    {
-        printf("Error. Array must have more elements than 0.");
-        exit(1);
-    }
+    int i, j;
+    int logn = (int)log2(n);
 
-    if (lower > upper)
-    {
-        printf("Error. Lower interval is higher than upper interval.");
-        exit(1);
-    }
-
-    int i, num;
-    srand(time(0));
-
-    for (i = 0; i < size; i++)
-    {
-        num = (rand() %
-               (upper - lower + 1)) +
-              lower;
-        array[i] = num;
-    }
-}
-
-void crew_prefix(FILE *graphviz, int processors, int *X, int n)
-{
-    int i, j, k;
-    
-    if((graphviz = fopen("graphviz.txt", "w")) == NULL)
+    if ((graphviz = fopen("graphviz.txt", "w")) == NULL)
     {
         printf("File opening error");
         exit(-1);
     }
 
-    fprintf(graphviz, "digraph G {\n\n");
+    fprintf(graphviz, "digraph G {\n\n start");
 
-    for(k = 0; k < processors; k++)
+    for (i = 0; i < logn; i++)
     {
-        for (i = 1; i < n; i++)
+#pragma omp parallel for
+        for (j = pow(2, i); j < n; j += pow(2, i + 1))
         {
-            for (j = 0; j < floor(log(n)-1); j++)
-            {
-                if (i - pow(2, j) >= 0)
-                {
-                    X[i] = X[i] + X[(int)(i - pow(2, j))];
-                }
-                
-            }
-            
+            fprintf(graphviz, " -> \" (%d, %d) \" ", (int)(j - pow(2, i)), (int)(j + pow(2, i)));
         }
-        
     }
 
-
-
-    fprintf(graphviz, "\n}\n");
+    fprintf(graphviz, " -> end \n}\n");
 
     fclose(graphviz);
-}
-
-void print_array(int *array, int size)
-{
-    int i;
-    
-    for (i = 0; i < size; i++)
-    {
-        printf("%d ", array[i]);
-    }
-    printf("\n");
 }
