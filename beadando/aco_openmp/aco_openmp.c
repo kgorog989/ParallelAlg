@@ -21,36 +21,60 @@ int main(int argc, char *argv[])
 {
     srand(time(NULL));
 
-    int num_threads = 60;    
+    double total_time;
+    clock_t start, end;
+
     int num_iterations = 100;
-    int num_ants = 100;
+    int num_ants;
+    int max_ants = 100;
     int num_cities = 312;
     double city_distances[num_cities][num_cities];
     double pheromones[num_cities][num_cities];
-    int ant_tours[num_ants][num_cities];
-    double ant_lengths[num_ants];
     int best_tour[num_cities];
-    double best_length = INFINITY;
-    
-    omp_set_num_threads(num_threads);
+    double best_length;
+
+    FILE *file;
+    if ((file = fopen("data/times_usca312.txt", "w")) == NULL)
+    {
+        printf("File opening error");
+        exit(-1);
+    }
 
     init_distance_matrix("data/usca312.txt", num_cities, city_distances);
-    init_pheromones(num_cities, pheromones);
-    init_ants(num_ants, num_cities, ant_tours, ant_lengths);
 
-    for (int i = 0; i < num_iterations; i++)
+    for (num_ants = 2; num_ants <= max_ants; num_ants++)
     {
-        generate_solutions(num_ants, num_cities, city_distances, pheromones, ant_tours, ant_lengths);
-        update_pheromones(num_cities, num_ants, pheromones, ant_tours, ant_lengths);
-        find_best_tour(num_cities, num_ants, ant_tours, ant_lengths, best_tour, &best_length);
+        start = clock();
+
+        omp_set_num_threads(num_ants);
+        double ant_lengths[num_ants];
+        int ant_tours[num_ants][num_cities];
+        best_length = INFINITY;
+
+        init_pheromones(num_cities, pheromones);
+
+        for (int i = 0; i < num_iterations; i++)
+        {
+
+            init_ants(num_ants, num_cities, ant_tours, ant_lengths);
+            generate_solutions(num_ants, num_cities, city_distances, pheromones, ant_tours, ant_lengths);
+            update_pheromones(num_cities, num_ants, pheromones, ant_tours, ant_lengths);
+            find_best_tour(num_cities, num_ants, ant_tours, ant_lengths, best_tour, &best_length);
+        }
+
+        printf("\nBest tour: ");
+        for (int i = 0; i < num_cities; i++)
+        {
+            printf("%d ", best_tour[i]);
+        }
+        printf("\nBest tour length: %lf\n", best_length);
+        end = clock();
+        total_time = ((double)(end - start)) / CLK_TCK;
+
+        fprintf(file, "%d %lf %lf\n", num_ants, total_time, best_length);
     }
 
-    printf("\nBest tour: ");
-    for (int i = 0; i < num_cities; i++)
-    {
-        printf("%d ", best_tour[i]);
-    }
-    printf("\nBest tour length: %lf\n", best_length);
+    fclose(file);
 
     return 0;
 }
@@ -156,7 +180,7 @@ void generate_solutions(int num_ants, int num_cities, double (*city_distances)[n
 
                 if (next_city_found == 0)
                 {
-                    for (int n = num_cities; n >= 0; n--)
+                    for (int n = num_cities - 1; n >= 0; n--)
                     {
                         if (visited_cities[n] == 0)
                         {

@@ -12,7 +12,6 @@
 #define RHO 0.5
 #define Q 100.0
 
-const int N_THREADS = 50;
 int ant_count = 0;
 
 pthread_mutex_t ant_lengths_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -40,53 +39,79 @@ void find_best_tour(Task *task, int *best_tour, double *best_length);
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    pthread_t threads[N_THREADS];
+
+    double total_time;
+    clock_t start, end;
+
     int num_iterations = 100;
+    int max_ants = 100;
     Task task;
-    task.num_ants = N_THREADS;
+    task.num_ants = 2;
     task.num_cities = 312;
     task.city_distances = (double *)malloc(task.num_cities * task.num_cities * sizeof(double));
     task.pheromones = (double *)malloc(task.num_cities * task.num_cities * sizeof(double));
-    task.ant_tours = (int *)malloc(task.num_ants * task.num_cities * sizeof(int));
-    task.ant_lengths = (double *)malloc(task.num_ants * sizeof(double));
+
     int best_tour[task.num_cities];
-    double best_length = INFINITY;
+    double best_length;
 
     init_distance_matrix("data/usca312.txt", &task);
-    init_pheromones(&task);
-    init_ants(&task);
 
-    for (int q = 0; q < num_iterations; q++)
+    FILE *file;
+    if ((file = fopen("data/times_usca312.txt", "w")) == NULL)
     {
-        ant_count = 0;
-        printf(":: Start threads ...\n");
-        for (int j = 0; j < N_THREADS; j++)
-        {
-            pthread_create(&threads[j], NULL, construct_ant_tour, (void *)&task);
-            printf("Thread %d created in iteration %d\n", j, q + 1);
-        }
-
-        printf(":: Join threads ...\n");
-        for (int i = 0; i < N_THREADS; ++i)
-        {
-            pthread_join(threads[i], NULL);
-        }
-
-        update_pheromones(&task);
-        find_best_tour(&task, best_tour, &best_length);
+        printf("File opening error");
+        exit(-1);
     }
 
-    printf("\nBest tour: ");
-    for (int i = 0; i < task.num_cities; i++)
+    for (task.num_ants; task.num_ants <= max_ants; task.num_ants++)
     {
-        printf("%d ", best_tour[i]);
+        start = clock();
+
+        best_length = INFINITY;
+        init_pheromones(&task);
+        task.ant_tours = (int *)malloc(task.num_ants * task.num_cities * sizeof(int));
+        task.ant_lengths = (double *)malloc(task.num_ants * sizeof(double));
+        pthread_t threads[task.num_ants];
+        for (int q = 0; q < num_iterations; q++)
+        {
+            init_ants(&task);
+            ant_count = 0;
+            // printf(":: Start threads ...\n");
+            for (int j = 0; j < task.num_ants; j++)
+            {
+                pthread_create(&threads[j], NULL, construct_ant_tour, (void *)&task);
+                // printf("Thread %d created in iteration %d\n", j, q + 1);
+            }
+
+            // printf(":: Join threads ...\n");
+            for (int i = 0; i < task.num_ants; ++i)
+            {
+                pthread_join(threads[i], NULL);
+            }
+
+            update_pheromones(&task);
+            find_best_tour(&task, best_tour, &best_length);
+        }
+
+        printf("\nBest tour: ");
+        for (int i = 0; i < task.num_cities; i++)
+        {
+            printf("%d ", best_tour[i]);
+        }
+        printf("\nBest tour length: %lf\n", best_length);
+
+        free(task.ant_tours);
+        free(task.ant_lengths);
+
+        end = clock();
+        total_time = ((double)(end - start)) / CLK_TCK;
+
+        fprintf(file, "%d %lf %lf\n", task.num_ants, total_time, best_length);
     }
-    printf("\nBest tour length: %lf\n", best_length);
+    fclose(file);
 
     free(task.city_distances);
     free(task.pheromones);
-    free(task.ant_tours);
-    free(task.ant_lengths);
 
     return 0;
 }
